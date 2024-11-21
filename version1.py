@@ -11,16 +11,7 @@ db_config = {
     'password': 'root',  # Replace with your MySQL root password
     'database': 'bank_management'
 }
-def validate_login():
-    username = username_entry.get()
-    password = password_entry.get()
-    if username == "admin" and password == "admin":
-        messagebox.showinfo("Login Success", "Login Successful!")
-        login_window.destroy()  # Close the login window
-        main_menu()  # Open the main menu after login
-    else:
-        messagebox.showerror("Login Failed", "Invalid Username or Password!")
-# Function to create new account
+
 def create_new_account():
     def save_account():
         
@@ -39,7 +30,7 @@ def create_new_account():
             cursor = conn.cursor()
 
             # Create table if not exists
-            cursor.execute("""
+            cursor.execute(""" 
             CREATE TABLE IF NOT EXISTS accounts (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 name VARCHAR(255),
@@ -47,7 +38,8 @@ def create_new_account():
                 email VARCHAR(255),
                 phone VARCHAR(20),
                 aadhar VARCHAR(20),
-                account_number VARCHAR(20)
+                account_number VARCHAR(20), 
+                balance DECIMAL(10, 2) DEFAULT 0
             )
             """)
 
@@ -72,11 +64,16 @@ def create_new_account():
     new_account_window = tk.Toplevel(main_menu_window)
     new_account_window.title("Create New Account")
     new_account_window.geometry("500x600")
-    bg_image1 = Image.open("3.png")  # Replace with your background image path
-    bg_image1 = bg_image.resize((new_account_window.winfo_screenwidth(), new_account_window.winfo_screenheight()), Image.Resampling.LANCZOS)
-    bg_photo1 = ImageTk.PhotoImage(bg_image1)
-    bg_label1 = tk.Label(new_account_window, image=bg_photo1)
-    bg_label1.place(relwidth=1, relheight=1)
+    bg_image = Image.open("3.png")  # Replace with your background image path
+    bg_image = bg_image.resize((new_account_window.winfo_screenwidth(), new_account_window.winfo_screenheight()), Image.Resampling.LANCZOS)
+    bg_photo = ImageTk.PhotoImage(bg_image)
+    
+    # Store the image reference to prevent garbage collection
+    new_account_window.bg_photo = bg_photo  # This line is important
+    bg_label = tk.Label(new_account_window, image=bg_photo)
+    bg_label.place(relwidth=1, relheight=1)
+
+ 
 
     # Form fields
     tk.Label(new_account_window, text="Name:", font=("Arial", 14)).pack(pady=10)
@@ -100,6 +97,134 @@ def create_new_account():
     aadhar_entry.pack(pady=10)
 
     tk.Button(new_account_window, text="Save Account", font=("Arial", 14), command=save_account).pack(pady=20)
+
+
+def deposit_money(account_number_entry, deposit_amount_entry):
+    account_number = account_number_entry.get()
+    amount = float(deposit_amount_entry.get())
+
+    try:
+        conn = mysql.connector.connect(**db_config)
+        cursor = conn.cursor()
+
+        # Check if the account exists
+        cursor.execute("SELECT * FROM accounts WHERE account_number = %s", (account_number,))
+        account = cursor.fetchone()
+
+        if account:
+            # Update the balance
+            new_balance = float(account[7]) + amount  # account[7] is the balance column
+            cursor.execute("UPDATE accounts SET balance = %s WHERE account_number = %s", (new_balance, account_number))
+            conn.commit()
+            messagebox.showinfo("Deposit Success", f"Deposited {amount} into account number {account_number}. New balance: {new_balance}")
+        else:
+            messagebox.showerror("Account Not Found", "Account number not found.")
+
+    except mysql.connector.Error as err:
+        messagebox.showerror("Error", f"Database Error: {err}")
+    finally:
+        if conn.is_connected():
+            cursor.close()
+            conn.close()
+
+def withdraw_money(account_number_entry, withdraw_amount_entry):
+    account_number = account_number_entry.get()
+    amount = float(withdraw_amount_entry.get())
+
+    try:
+        conn = mysql.connector.connect(**db_config)
+        cursor = conn.cursor()
+
+        # Check if the account exists
+        cursor.execute("SELECT * FROM accounts WHERE account_number = %s", (account_number,))
+        account = cursor.fetchone()
+
+        if account:
+            # Check if sufficient balance is available
+            if account[7] >= amount:
+                new_balance = account[7] - amount
+                cursor.execute("UPDATE accounts SET balance = %s WHERE account_number = %s", (new_balance, account_number))
+                conn.commit()
+                messagebox.showinfo("Withdraw Success", f"Withdrew {amount} from account number {account_number}. New balance: {new_balance}")
+            else:
+                messagebox.showerror("Insufficient Balance", "Insufficient balance for this withdrawal.")
+        else:
+            messagebox.showerror("Account Not Found", "Account number not found.")
+
+    except mysql.connector.Error as err:
+        messagebox.showerror("Error", f"Database Error: {err}")
+    finally:
+        if conn.is_connected():
+            cursor.close()
+            conn.close()
+
+# Function for viewing the statement of the account
+def view_statement(account_number_entry):
+    account_number = account_number_entry.get()
+
+    try:
+        conn = mysql.connector.connect(**db_config)
+        cursor = conn.cursor()
+
+        # Check if the account exists
+        cursor.execute("SELECT * FROM accounts WHERE account_number = %s", (account_number,))
+        account = cursor.fetchone()
+
+        if account:
+            statement = f"Account Number: {account_number}\nName: {account[1]}\nBalance: {account[7]}"
+            messagebox.showinfo("Account Statement", statement)
+        else:
+            messagebox.showerror("Account Not Found", "Account number not found.")
+
+    except mysql.connector.Error as err:
+        messagebox.showerror("Error", f"Database Error: {err}")
+    finally:
+        if conn.is_connected():
+            cursor.close()
+            conn.close()
+
+# Function for account window (deposit, withdraw, statement)
+def account_window():
+    account_window = tk.Toplevel(main_menu_window)
+    account_window.title("Manage Existing Account")
+    account_window.geometry("500x600")
+
+    bg_image = Image.open("3.png")  # Replace with your background image path
+    bg_image = bg_image.resize((account_window.winfo_screenwidth(), account_window.winfo_screenheight()), Image.Resampling.LANCZOS)
+    bg_photo = ImageTk.PhotoImage(bg_image)
+    
+    # Store the image reference to prevent garbage collection
+    account_window.bg_photo = bg_photo  # This line is important
+    bg_label = tk.Label(account_window, image=bg_photo)
+    bg_label.place(relwidth=1, relheight=1)
+
+    # Form fields
+    tk.Label(account_window, text="Account Number:", font=("Arial", 14)).pack(pady=10)
+    account_number_entry = tk.Entry(account_window, font=("Arial", 14))
+    account_number_entry.pack(pady=10)
+
+    tk.Label(account_window, text="Deposit Amount:", font=("Arial", 14)).pack(pady=10)
+    deposit_amount_entry = tk.Entry(account_window, font=("Arial", 14))
+    deposit_amount_entry.pack(pady=10)
+    tk.Button(account_window, text="Deposit", font=("Arial", 14), command=lambda: deposit_money(account_number_entry, deposit_amount_entry)).pack(pady=10)
+
+    tk.Label(account_window, text="Withdraw Amount:", font=("Arial", 14)).pack(pady=10)
+    withdraw_amount_entry = tk.Entry(account_window, font=("Arial", 14))
+    withdraw_amount_entry.pack(pady=10)
+    tk.Button(account_window, text="Withdraw", font=("Arial", 14), command=lambda: withdraw_money(account_number_entry, withdraw_amount_entry)).pack(pady=10)
+
+    tk.Button(account_window, text="View Statement", font=("Arial", 14), command=lambda: view_statement(account_number_entry)).pack(pady=20)
+
+def validate_login():
+    username = username_entry.get()
+    password = password_entry.get()
+    if username == "admin" and password == "admin":
+        messagebox.showinfo("Login Success", "Login Successful!")
+        login_window.destroy()  # Close the login window
+        main_menu()  # Open the main menu after login
+    else:
+        messagebox.showerror("Login Failed", "Invalid Username or Password!")
+# Function to create new account
 
 # Function for the main menu
 def main_menu():
@@ -127,7 +252,7 @@ def main_menu():
 
     # Main menu components
     tk.Label(main_menu_window, text="Bank Management System", font=("Arial", 36, "bold"), bg="#ffffff", fg="#000000").pack(pady=30)
-    tk.Button(main_menu_window, text="Existing Account", font=("Arial", 20, "bold"), command=open_existing_account, width=20, bg="#000080", fg="white").pack(pady=20)
+    tk.Button(main_menu_window, text="Existing Account", font=("Arial", 20, "bold"), command=account_window, width=20, bg="#000080", fg="white").pack(pady=20)
     tk.Button(main_menu_window, text="New Account", font=("Arial", 20, "bold"), command=create_new_account, width=20, bg="#006400", fg="white").pack(pady=20)
     tk.Button(main_menu_window, text="Exit", font=("Arial", 20, "bold"), command=exit_system, width=20, bg="#800000", fg="white").pack(pady=20)
 
