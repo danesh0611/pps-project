@@ -64,7 +64,7 @@ def create_new_account():
     new_account_window = tk.Toplevel(main_menu_window)
     new_account_window.title("Create New Account")
     new_account_window.geometry("500x600")
-    bg_image = Image.open("3.png")  # Replace with your background image path
+    bg_image = Image.open("4.png")  # Replace with your background image path
     bg_image = bg_image.resize((new_account_window.winfo_screenwidth(), new_account_window.winfo_screenheight()), Image.Resampling.LANCZOS)
     bg_photo = ImageTk.PhotoImage(bg_image)
     
