@@ -1,0 +1,46 @@
+import sqlite3
+
+# Step 1: Connect to SQLite database (or create it if it doesn't exist)
+connection = sqlite3.connect("example.db")
+cursor = connection.cursor()
+
+# Step 2: Create a table (with phone number and Aadhar number added)
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    age INTEGER NOT NULL,
+    email TEXT NOT NULL,
+    phone TEXT NOT NULL,
+    aadhar TEXT NOT NULL
+)
+""")
+connection.commit()
+
+# Step 3: Accept user input
+name = input("Enter your name: ")
+age = int(input("Enter your age: "))
+email = input("Enter your email: ")
+phone = input("Enter your phone number: ")
+aadhar = input("Enter your Aadhar number: ")
+
+# Step 4: Insert data into the table
+cursor.execute("""
+INSERT INTO users (name, age, email, phone, aadhar)
+VALUES (?, ?, ?, ?, ?)
+""", (name, age, email, phone, aadhar))
+
+connection.commit()
+
+# Confirm insertion
+print("Data has been saved successfully!")
+
+# Step 5: Optional - Display all records
+cursor.execute("SELECT * FROM users")
+rows = cursor.fetchall()
+print("\nAll records:")
+for row in rows:
+    print(row)
+
+# Close the connection
+connection.close()
